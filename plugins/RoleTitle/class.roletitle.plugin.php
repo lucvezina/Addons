@@ -2,11 +2,12 @@
 
 // 0.2 - 2011-09-07 - mosullivan - Added InjectCssClass, Optimized querying.
 // 0.3 - 2011-12-13 - linc - Add class to title span, make injected CSS class Vanilla-like (capitalized, no dashes).
+// 0.4 - 2011-09-07 - mosullivan - Consolidated role injection to a single event. 
 
 $PluginInfo['RoleTitle'] = array(
-   'Name' => 'Role Titles',
-   'Description' => "Lists user's assigned roles under their name and allows theming by role (adds role-specific CSS classes to comments).",
-   'Version' => '0.3',
+   'Name' => 'RoleTitle',
+   'Description' => "Adds user's roles under their name in comments and adds related css definitions to the comment containers.",
+   'Version' => '0.4',
    'RequiredApplications' => array('Vanilla' => '2.0.17'),
    'MobileFriendly' => TRUE,
    'RegisterPermissions' => FALSE,
@@ -19,13 +20,7 @@ class RoleTitlePlugin extends Gdn_Plugin {
    /**
     * Inject the roles under the username on comments.
     */
-   public function DiscussionController_CommentInfo_Handler($Sender) {
-      $this->_AttachTitle($Sender);
-   }
-   public function PostController_CommentInfo_Handler($Sender) {
-      $this->_AttachTitle($Sender);
-   }
-   private function _AttachTitle($Sender) {
+   public function Base_AuthorInfo_Handler($Sender) {
       $Object = GetValue('Object', $Sender->EventArguments);
       $Roles = $Object ? GetValue('Roles', $Object, array()) : FALSE;
       if (!$Roles)
@@ -37,25 +32,31 @@ class RoleTitlePlugin extends Gdn_Plugin {
    /**
     * Inject css classes into the comment containers.
     */
-   public function DiscussionController_BeforeCommentDisplay_Handler($Sender) {
-      $this->_InjectCssClass($Sender);
-   }
-   public function PostController_BeforeCommentDisplay_Handler($Sender) {
-      $this->_InjectCssClass($Sender);
-   }
-   private function _InjectCssClass($Sender) {
-      $Object = GetValue('Object', $Sender->EventArguments);
-      $CssRoles = $Object ? GetValue('Roles', $Object, array()) : FALSE;
+   public function Base_BeforeCommentDisplay_Handler($Sender) {
+      $Comment = GetValue('Comment', $Sender->EventArguments);
+      if (!$Comment)
+         return;
+
+      $CssRoles = $Comment ? GetValue('Roles', $Comment, array()) : FALSE;
       if (!$CssRoles)
          return;
       
-      foreach ($CssRoles as &$RawRole)
+      $Sender->EventArguments['CssClass'] .= $this->_GetCssClass($CssRoles);
+   }
+   
+   /** 
+    * Define the class names based on role names.
+    */
+   private function _GetCssClass($Roles) {
+      if (!$Roles)
+         return;
+      
+      foreach ($Roles as &$RawRole)
          $RawRole = 'Role_'.str_replace(' ','_', Gdn_Format::AlphaNumeric($RawRole));
    
-      if (count($CssRoles))
-         $Sender->EventArguments['CssClass'] .= ' '.implode(' ',$CssRoles);
-      
+      return count($Roles) ? ' '.implode(' ', $Roles) : '';
    }
+
    
    /**
     * Add the insert user's roles to the comment data so we can visually
@@ -71,6 +72,9 @@ class RoleTitlePlugin extends Gdn_Plugin {
 			$JoinDiscussion = array($Sender->Discussion);
 			RoleModel::SetUserRoles($JoinDiscussion, 'InsertUserID');
 			RoleModel::SetUserRoles($Sender->CommentData->Result(), 'InsertUserID');
+         
+         // Assign the css class for the discussion here 
+         $Sender->Discussion->_CssClass .= $this->_GetCssClass($Sender->Discussion->Roles);
 		}
    }
    public function PostController_Render_Before($Sender) {
