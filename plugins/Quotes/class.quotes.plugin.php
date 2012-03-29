@@ -156,7 +156,7 @@ class QuotesPlugin extends Gdn_Plugin {
    /**
     * Add 'Quote' option to Discussion.
     */
-   public function DiscussionController_AfterDiscussionMeta_Handler($Sender, $Args) {
+   public function DiscussionController_DiscussionOptions_Handler($Sender, $Args) {
       $this->AddQuoteButton($Sender, $Args);
    }
    
