@@ -21,12 +21,15 @@ class RoleTitlePlugin extends Gdn_Plugin {
     * Inject the roles under the username on comments.
     */
    public function Base_AuthorInfo_Handler($Sender) {
-      $Object = GetValue('Object', $Sender->EventArguments);
+      $Object = GetValue('Comment', $Sender->EventArguments);
+      if (!$Object)
+         $Object = GetValue('Discussion', $Sender->EventArguments);
+      
       $Roles = $Object ? GetValue('Roles', $Object, array()) : FALSE;
       if (!$Roles)
          return;
 
-      echo '<span class="RoleTitle">'.implode(', ', $Roles).'</span> ';
+      echo '<span class="MItem RoleTitle">'.implode(', ', $Roles).'</span> ';
    }
 
    /**
