@@ -307,8 +307,7 @@ class FeedDiscussionsPlugin extends Gdn_Plugin {
                'Body'            => $ParsedStoryBody
             );
 
-         $Minion = Gdn::PluginManager()->GetPluginInstance('MinionPlugin');
-         $InsertUserID = $Minion->GetMinionUserID();
+         $InsertUserID = Gdn::UserModel()->GetSystemUserID();
 
          $DiscussionData[$DiscussionModel->DateInserted] = $StoryPublished;
          $DiscussionData[$DiscussionModel->InsertUserID] = $InsertUserID;
